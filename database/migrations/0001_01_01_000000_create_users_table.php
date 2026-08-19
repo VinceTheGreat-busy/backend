@@ -15,9 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->string('pfp')->nullable();
+            $table->enum("role", ["CUSTOMER", "ADMIN"])
+                ->default("CUSTOMER");
             $table->string('password');
-            $table->rememberToken();
+            $table->timestamp('email_verified_at')->nullable();
             $table->timestamps();
         });
 
