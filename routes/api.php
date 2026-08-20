@@ -23,7 +23,10 @@ Route::get('/', function () {
 
 // Authentication
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::middleware('web')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
 
 // Products
 Route::get('/products', [ProductController::class, 'index']);
@@ -38,7 +41,6 @@ Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::middleware('auth:sanctum')->group(function () {
 
     // Authentication
-    Route::post('/logout', [AuthController::class, 'logout']);
 
 
     /*
