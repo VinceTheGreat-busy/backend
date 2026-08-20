@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('email')->unique();
             $table->string('pfp')->nullable();
+            $table->integer('phone');
             $table->enum("role", ["CUSTOMER", "ADMIN"])
                 ->default("CUSTOMER");
             $table->string('password');
