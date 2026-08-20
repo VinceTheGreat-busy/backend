@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Routing\Controller;
 
 class AuthController extends Controller
@@ -18,7 +20,7 @@ class AuthController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'phone' => 'required|string|max:11',
-            'username' => 'required|string|max:255'
+            'username' => 'required|string|max:255|unique:users,username',
         ]);
 
         $user = User::create([
@@ -27,7 +29,7 @@ class AuthController extends Controller
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'phone' => $validated['phone'],
-            'username' => $validated['username']
+            'username' => $validated['username'],
         ]);
 
         Auth::login($user);
@@ -36,7 +38,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Registration successful',
-            'user' => $user,
+            'user' => $user->makeHidden(['password', 'remember_token']),
         ], 201);
     }
 
@@ -47,29 +49,50 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        $throttleKey = strtolower($credentials['email']) . '|' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            throw ValidationException::withMessages([
+                'email' => "Too many login attempts. Try again in {$seconds} seconds.",
+            ]);
+        }
+
+        if (!Auth::attempt($credentials, $request->boolean('remember'))) {
+            RateLimiter::hit($throttleKey, 60);
+
             return response()->json([
                 'message' => 'Invalid email or password.',
             ], 401);
         }
 
+        RateLimiter::clear($throttleKey);
+
         $request->session()->regenerate();
 
         return response()->json([
             'message' => 'Login successful.',
-            'user' => Auth::user(),
+            'user' => Auth::user()->makeHidden(['password', 'remember_token']),
         ]);
     }
 
     public function logout(Request $request)
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return response()->json([
-            'message' => 'Logged out successfully'
+            'message' => 'Logged out successfully',
         ]);
+    }
+
+    public function user(Request $request)
+    {
+        return response()->json(
+            $request->user()->makeHidden(['password', 'remember_token'])
+        );
     }
 }
