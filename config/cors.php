@@ -10,7 +10,7 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        env('FRONTEND_HOST', 'http://localhost:5173'),
+        env('FRONTEND_HOST', 'https://vnc-clothing-beryl.vercel.app/'),
     ],
 
     'allowed_origins_patterns' => [],
